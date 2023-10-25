@@ -1,13 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class ColoringBehaviour : MonoBehaviour
 {
     public Camera mainCamera;
     public Texture2D brushTexture;
     public float brushSize = 1f;
-    public Color brushColor = Color.red;
+    public Color brushColor;
+    public GameObject brushColorObject;
     private LineRenderer lineRenderer;
     private Renderer rend;
     private Texture2D canvasTexture;
@@ -29,6 +31,7 @@ public class ColoringBehaviour : MonoBehaviour
 
     void Update()
     {
+        brushColor = brushColorObject.GetComponent<Image>().color;
         //Debug.Log("IsMouseInput");
         //Debug.Log(Input.GetMouseButton(0));
         if (Input.GetMouseButton(0))
