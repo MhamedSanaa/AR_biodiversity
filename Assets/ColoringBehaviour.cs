@@ -6,19 +6,18 @@ using UnityEngine.UI;
 public class ColoringBehaviour : MonoBehaviour
 {
     public Camera mainCamera;
-    public Texture2D brushTexture;
-    public float brushSize = 1f;
-    public Color brushColor;
+    public float brushSize = 50f;
     public GameObject brushColorObject;
+    private Color brushColor;
     private LineRenderer lineRenderer;
-    private Renderer rend;
+    private Texture2D brushTexture;
     private Texture2D canvasTexture;
+    private RaycastHit hitInfo;
+
     void Start()
     {
-        Application.targetFrameRate = 10;
-        rend = GetComponent<Renderer>();
+        Renderer rend = GetComponent<Renderer>();
         canvasTexture = new Texture2D(1024, 1024);
-        canvasTexture.wrapMode = TextureWrapMode.Clamp;
         rend.material.mainTexture = canvasTexture;
 
         lineRenderer = gameObject.AddComponent<LineRenderer>();
@@ -32,8 +31,7 @@ public class ColoringBehaviour : MonoBehaviour
     void Update()
     {
         brushColor = brushColorObject.GetComponent<Image>().color;
-        //Debug.Log("IsMouseInput");
-        //Debug.Log(Input.GetMouseButton(0));
+        brushTexture = CreateBrushTexture((int)brushSize, brushColor);
         if (Input.GetMouseButton(0))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -56,39 +54,58 @@ public class ColoringBehaviour : MonoBehaviour
             lineRenderer.SetPosition(0, ray.origin);
             lineRenderer.SetPosition(1, ray.origin + ray.direction * 100);
         }
-       /* Debug.Log("IsTouchInput");
-        Debug.Log(Input.GetTouch(0).phase == TouchPhase.Began);
-        if (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began)
+    }
+
+    Texture2D CreateBrushTexture(int size, Color color)
+    {
+        Texture2D tex = new Texture2D(size, size);
+        Color[] colors = new Color[size * size];
+
+        float center = size / 2f;
+        float radius = size / 2f;
+
+        for (int i = 0; i < size; i++)
         {
-            Ray ray = Camera.main.ScreenPointToRay(Input.GetTouch(0).position); // Cast a ray from the touch position
-
-            RaycastHit hitInfo; // Variable to hold the raycast hit information
-
-            if (Physics.Raycast(ray, out hitInfo)) // Check if the ray hits any collider
+            for (int j = 0; j < size; j++)
             {
-                if (hitInfo.transform == transform)
-                {
-                    Paint(hitInfo.textureCoord);
-                }
+                float distance = Vector2.Distance(new Vector2(i, j), new Vector2(center, center));
+                float alpha = Mathf.Clamp01(1 - distance / radius);
+                colors[i * size + j] = color * new Color(1, 1, 1, alpha);
             }
-            Debug.DrawRay(ray.origin, ray.direction * 100, Color.green);
-            lineRenderer.SetPosition(0, ray.origin);
-            lineRenderer.SetPosition(1, ray.origin + ray.direction * 100);
-        }*/
+        }
+
+        tex.SetPixels(colors);
+        tex.Apply();
+        return tex;
     }
 
     void Paint(Vector2 uv)
     {
-        int x = (int)(uv.x * canvasTexture.width);
-        int y = (int)(uv.y * canvasTexture.height);
+        int width = canvasTexture.width;
+        int height = canvasTexture.height;
 
-        for (int i = -Mathf.RoundToInt(brushSize); i < Mathf.RoundToInt(brushSize); i++)
+        int x = (int)(uv.x * width);
+        int y = (int)(uv.y * height);
+
+        int brushWidth = brushTexture.width;
+        int brushHeight = brushTexture.height;
+
+        int textureX, textureY;
+        for (int i = 0; i < brushWidth; i++)
         {
-            for (int j = -Mathf.RoundToInt(brushSize); j < Mathf.RoundToInt(brushSize); j++)
+            for (int j = 0; j < brushHeight; j++)
             {
-                if (x + i >= 0 && x + i < canvasTexture.width && y + j >= 0 && y + j < canvasTexture.height)
+                textureX = x + i - brushWidth / 2;
+                textureY = y + j - brushHeight / 2;
+
+                if (textureX >= 0 && textureX < width && textureY >= 0 && textureY < height)
                 {
-                    canvasTexture.SetPixel(x + i, y + j, brushColor);
+                    Color canvasColor = canvasTexture.GetPixel(textureX, textureY);
+                    Color brushColored = brushTexture.GetPixel(i, j) * brushColor;
+                    float dist = Vector2.Distance(new Vector2(i, j), new Vector2(brushWidth / 2, brushHeight / 2));
+                    float strength = 1 - Mathf.Clamp01(dist / (brushWidth / 2));
+                    Color finalColor = Color.Lerp(canvasColor, brushColored, brushColored.a * strength);
+                    canvasTexture.SetPixel(textureX, textureY, finalColor);
                 }
             }
         }
