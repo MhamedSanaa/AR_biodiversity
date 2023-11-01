@@ -8,6 +8,7 @@ public class ColoringBehaviour : MonoBehaviour
     public Camera mainCamera;
     public float brushSize = 50f;
     public GameObject brushColorObject;
+    public Slider SizeSlider;
     private Color brushColor;
     private LineRenderer lineRenderer;
     private Texture2D brushTexture;
@@ -31,6 +32,7 @@ public class ColoringBehaviour : MonoBehaviour
     void Update()
     {
         brushColor = brushColorObject.GetComponent<Image>().color;
+        brushSize = SizeSlider.value;
         brushTexture = CreateBrushTexture((int)brushSize, brushColor);
         if (Input.GetMouseButton(0))
         {
